@@ -1,0 +1,359 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  CUSTOMER
+  ORGANISER
+  ADMIN
+}
+
+enum EventType {
+  MOVIE
+  CONCERT
+  LIVE_EVENT
+}
+
+enum SeatCategoryName {
+  STANDARD
+  PREMIUM
+  VIP
+}
+
+enum ShowStatus {
+  SCHEDULED
+  CANCELLED
+  COMPLETED
+}
+
+enum ShowSeatStatus {
+  AVAILABLE
+  HELD
+  BOOKED
+  OFFERED
+}
+
+enum HoldStatus {
+  ACTIVE
+  COMPLETED
+  EXPIRED
+  RELEASED
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CANCELLED
+}
+
+enum WaitlistStatus {
+  WAITING
+  OFFERED
+  ACCEPTED
+  EXPIRED
+  CANCELLED
+}
+
+enum WaitlistOfferStatus {
+  ACTIVE
+  ACCEPTED
+  EXPIRED
+}
+
+enum NotificationType {
+  BOOKING_CONFIRMED
+  BOOKING_CANCELLED
+  WAITLIST_OFFER
+  OFFER_EXPIRED
+  TICKET_ISSUED
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         Role     @default(CUSTOMER)
+  createdAt    DateTime @default(now())
+
+  // Relations
+  organisedEvents  Event[]          @relation("OrganiserEvents")
+  bookings         Booking[]
+  seatHolds        SeatHold[]
+  waitlistEntries  WaitlistEntry[]
+  notifications    Notification[]
+  auditLogs        AuditLog[]
+  createdVenues    Venue[]
+
+  @@map("users")
+}
+
+model Venue {
+  id        String   @id @default(cuid())
+  name      String
+  address   String
+  city      String
+  createdBy User     @relation(fields: [createdById], references: [id])
+  createdById String
+  createdAt DateTime @default(now())
+
+  // Relations
+  seatCategories SeatCategory[]
+  venueSeats     VenueSeat[]
+  shows          Show[]
+
+  @@map("venues")
+}
+
+model SeatCategory {
+  id        String           @id @default(cuid())
+  venueId   String
+  venue     Venue            @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  name      SeatCategoryName
+  colorCode String
+
+  // Relations
+  venueSeats            VenueSeat[]
+  showSeatCategoryPrices ShowSeatCategoryPrice[]
+  showSeats             ShowSeat[]
+  waitlistEntries       WaitlistEntry[]
+
+  @@unique([venueId, name])
+  @@map("seat_categories")
+}
+
+model VenueSeat {
+  id         String       @id @default(cuid())
+  venueId    String
+  venue      Venue        @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  categoryId String
+  category   SeatCategory @relation(fields: [categoryId], references: [id])
+  row        String
+  number     Int
+  label      String       // e.g. "A12"
+
+  // Relations
+  showSeats ShowSeat[]
+
+  @@unique([venueId, row, number])
+  @@map("venue_seats")
+}
+
+model Event {
+  id          String    @id @default(cuid())
+  title       String
+  description String
+  type        EventType
+  genre       String
+  posterUrl   String?
+  organiser   User      @relation("OrganiserEvents", fields: [organiserId], references: [id])
+  organiserId String
+  createdAt   DateTime  @default(now())
+
+  // Relations
+  shows Show[]
+
+  @@map("events")
+}
+
+model Show {
+  id        String     @id @default(cuid())
+  event     Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId   String
+  venue     Venue      @relation(fields: [venueId], references: [id])
+  venueId   String
+  startTime DateTime
+  endTime   DateTime
+  status    ShowStatus @default(SCHEDULED)
+
+  // Relations
+  showSeatCategoryPrices ShowSeatCategoryPrice[]
+  showSeats              ShowSeat[]
+  seatHolds              SeatHold[]
+  bookings               Booking[]
+  waitlistEntries        WaitlistEntry[]
+
+  @@map("shows")
+}
+
+model ShowSeatCategoryPrice {
+  id         String       @id @default(cuid())
+  show       Show         @relation(fields: [showId], references: [id], onDelete: Cascade)
+  showId     String
+  category   SeatCategory @relation(fields: [categoryId], references: [id])
+  categoryId String
+  price      Decimal      @db.Decimal(10, 2)
+
+  @@unique([showId, categoryId])
+  @@map("show_seat_category_prices")
+}
+
+model ShowSeat {
+  id          String         @id @default(cuid())
+  show        Show           @relation(fields: [showId], references: [id], onDelete: Cascade)
+  showId      String
+  venueSeat   VenueSeat      @relation(fields: [venueSeatId], references: [id])
+  venueSeatId String
+  category    SeatCategory   @relation(fields: [categoryId], references: [id])
+  categoryId  String
+  status      ShowSeatStatus @default(AVAILABLE)
+  holdId      String?        // nullable — set when HELD
+  bookingId   String?        // nullable — set when BOOKED
+  version     Int            @default(0) // optimistic lock
+
+  // Relations
+  seatHoldItems   SeatHoldItem[]
+  bookingSeat     BookingSeat?
+  waitlistOffers  WaitlistOffer[]
+  ticket          Ticket?
+
+  @@unique([showId, venueSeatId])
+  @@index([showId, status])
+  @@map("show_seats")
+}
+
+model SeatHold {
+  id          String     @id @default(cuid())
+  show        Show       @relation(fields: [showId], references: [id])
+  showId      String
+  user        User       @relation(fields: [userId], references: [id])
+  userId      String
+  expiresAt   DateTime
+  status      HoldStatus @default(ACTIVE)
+  createdAt   DateTime   @default(now())
+  releasedAt  DateTime?
+  bookedAt    DateTime?
+
+  // Relations
+  items SeatHoldItem[]
+
+  @@index([status, expiresAt])
+  @@map("seat_holds")
+}
+
+model SeatHoldItem {
+  id          String   @id @default(cuid())
+  hold        SeatHold @relation(fields: [holdId], references: [id], onDelete: Cascade)
+  holdId      String
+  showSeat    ShowSeat @relation(fields: [showSeatId], references: [id])
+  showSeatId  String
+
+  // Structural guarantee: a seat can belong to only ONE hold row at a time
+  @@unique([showSeatId])
+  @@map("seat_hold_items")
+}
+
+model Booking {
+  id               String        @id @default(cuid())
+  user             User          @relation(fields: [userId], references: [id])
+  userId           String
+  show             Show          @relation(fields: [showId], references: [id])
+  showId           String
+  bookingReference String        @unique @default(cuid())
+  status           BookingStatus @default(CONFIRMED)
+  totalAmount      Decimal       @db.Decimal(10, 2)
+  createdAt        DateTime      @default(now())
+
+  // Relations
+  bookingSeats BookingSeat[]
+
+  @@index([bookingReference])
+  @@map("bookings")
+}
+
+model BookingSeat {
+  id             String   @id @default(cuid())
+  booking        Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bookingId      String
+  showSeat       ShowSeat @relation(fields: [showSeatId], references: [id])
+  showSeatId     String   @unique
+  priceAtBooking Decimal  @db.Decimal(10, 2)
+
+  // Relations
+  ticket Ticket?
+
+  @@map("booking_seats")
+}
+
+model WaitlistEntry {
+  id         String        @id @default(cuid())
+  user       User          @relation(fields: [userId], references: [id])
+  userId     String
+  show       Show          @relation(fields: [showId], references: [id])
+  showId     String
+  category   SeatCategory  @relation(fields: [categoryId], references: [id])
+  categoryId String
+  position   Int           // FIFO ordering within (showId, categoryId)
+  status     WaitlistStatus @default(WAITING)
+  createdAt  DateTime      @default(now())
+
+  // Relations
+  offers WaitlistOffer[]
+
+  @@unique([userId, showId, categoryId]) // one entry per user per category per show
+  @@index([showId, categoryId, status, position])
+  @@map("waitlist_entries")
+}
+
+model WaitlistOffer {
+  id               String              @id @default(cuid())
+  waitlistEntry    WaitlistEntry       @relation(fields: [waitlistEntryId], references: [id])
+  waitlistEntryId  String
+  showSeat         ShowSeat            @relation(fields: [showSeatId], references: [id])
+  showSeatId       String
+  expiresAt        DateTime
+  status           WaitlistOfferStatus @default(ACTIVE)
+  createdAt        DateTime            @default(now())
+
+  @@map("waitlist_offers")
+}
+
+model Ticket {
+  id           String      @id @default(cuid())
+  bookingSeat  BookingSeat @relation(fields: [bookingSeatId], references: [id])
+  bookingSeatId String     @unique
+  showSeat     ShowSeat    @relation(fields: [showSeatId], references: [id])
+  showSeatId   String      @unique
+  qrToken      String      @unique
+  issuedAt     DateTime    @default(now())
+
+  @@map("tickets")
+}
+
+model Notification {
+  id      String           @id @default(cuid())
+  user    User             @relation(fields: [userId], references: [id])
+  userId  String
+  type    NotificationType
+  payload Json             // flexible jsonb payload
+  sentAt  DateTime?
+  status  String           @default("PENDING") // PENDING | SENT | FAILED
+
+  @@map("notifications")
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  eventType   String
+  user        User?    @relation(fields: [userId], references: [id])
+  userId      String?
+  entityType  String
+  entityId    String
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@map("audit_logs")
+}
