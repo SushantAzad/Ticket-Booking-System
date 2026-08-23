@@ -24,14 +24,22 @@ export class NotificationsService {
       // Generate QR Token (signed)
       const qrSecret = this.configService.get<string>('QR_SECRET', 'secret');
       const payload = `${booking.id}:${booking.userId}:${booking.bookingReference}`;
-      const signature = crypto.createHmac('sha256', qrSecret).update(payload).digest('hex');
+      const signature = crypto
+        .createHmac('sha256', qrSecret)
+        .update(payload)
+        .digest('hex');
       const qrToken = `${payload}:${signature}`;
 
       // Generate QR Image Buffer
-      const qrBuffer = await QRCode.toBuffer(qrToken, { type: 'png', width: 300 });
+      const qrBuffer = await QRCode.toBuffer(qrToken, {
+        type: 'png',
+        width: 300,
+      });
 
       if (!this.enabled) {
-        this.logger.debug(`[Mock Email] Booking confirmation sent to ${user.email} for ${booking.bookingReference}`);
+        this.logger.debug(
+          `[Mock Email] Booking confirmation sent to ${user.email} for ${booking.bookingReference}`,
+        );
         return { success: true, mocked: true };
       }
 
@@ -57,15 +65,24 @@ export class NotificationsService {
       this.logger.log(`Booking confirmation email sent to ${user.email}`);
       return { success: true };
     } catch (error) {
-      this.logger.error(`Failed to send booking confirmation to ${user.email}: ${error.message}`);
+      this.logger.error(
+        `Failed to send booking confirmation to ${user.email}: ${error.message}`,
+      );
       // Don't throw, we don't want to crash the booking flow if email fails
       return { success: false };
     }
   }
 
-  async sendWaitlistOffer(email: string, name: string, showName: string, expiresAt: Date) {
+  async sendWaitlistOffer(
+    email: string,
+    name: string,
+    showName: string,
+    expiresAt: Date,
+  ) {
     if (!this.enabled) {
-      this.logger.debug(`[Mock Email] Waitlist offer sent to ${email} for ${showName}`);
+      this.logger.debug(
+        `[Mock Email] Waitlist offer sent to ${email} for ${showName}`,
+      );
       return { success: true, mocked: true };
     }
 
@@ -84,7 +101,9 @@ export class NotificationsService {
       });
       return { success: true };
     } catch (error) {
-      this.logger.error(`Failed to send waitlist offer to ${email}: ${error.message}`);
+      this.logger.error(
+        `Failed to send waitlist offer to ${email}: ${error.message}`,
+      );
       return { success: false };
     }
   }

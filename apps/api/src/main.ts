@@ -45,7 +45,9 @@ async function bootstrap() {
   // Swagger
   const config = new DocumentBuilder()
     .setTitle('Ticket Booking System API')
-    .setDescription('Production-grade ticket booking platform with real-time seat availability')
+    .setDescription(
+      'Production-grade ticket booking platform with real-time seat availability',
+    )
     .setVersion('1.0')
     .addBearerAuth()
     .addTag('auth', 'Authentication endpoints')

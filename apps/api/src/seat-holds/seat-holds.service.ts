@@ -16,6 +16,7 @@ import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { v4 as uuidv4 } from 'uuid';
 
 export const SEAT_HOLD_QUEUE = 'seat-hold-expiry';
+const holdExpiryJobId = (holdId: string) => `hold-expiry-${holdId}`;
 
 @Injectable()
 export class SeatHoldsService {
@@ -29,7 +30,10 @@ export class SeatHoldsService {
     @InjectQueue(SEAT_HOLD_QUEUE) private readonly holdQueue: Queue,
     private readonly realtimeGateway: RealtimeGateway,
   ) {
-    this.holdTtlMinutes = this.configService.get<number>('SEAT_HOLD_TTL_MINUTES', 10);
+    this.holdTtlMinutes = this.configService.get<number>(
+      'SEAT_HOLD_TTL_MINUTES',
+      10,
+    );
   }
 
   async createHold(showId: string, dto: CreateHoldDto, user: User) {
@@ -49,7 +53,9 @@ export class SeatHoldsService {
     });
 
     if (showSeats.length !== dto.seatIds.length) {
-      throw new BadRequestException('One or more seats do not belong to this show');
+      throw new BadRequestException(
+        'One or more seats do not belong to this show',
+      );
     }
 
     const holdId = uuidv4();
@@ -76,7 +82,7 @@ export class SeatHoldsService {
       { holdId, showId, seatIds: dto.seatIds },
       {
         delay,
-        jobId: `hold-expiry:${holdId}`,
+        jobId: holdExpiryJobId(holdId),
         removeOnComplete: true,
         removeOnFail: 10,
         attempts: 3,
@@ -97,13 +103,16 @@ export class SeatHoldsService {
     const hold = await this.repository.findActiveHold(holdId);
 
     if (!hold) throw new NotFoundException('Hold not found');
-    if (hold.showId !== showId) throw new BadRequestException('Hold does not belong to this show');
+    if (hold.showId !== showId)
+      throw new BadRequestException('Hold does not belong to this show');
     if (hold.userId !== user.id) throw new ForbiddenException('Not your hold');
 
     const released = await this.repository.conditionalRelease(holdId);
 
     if (released === 0) {
-      throw new BadRequestException('Hold is not active (may have expired or been confirmed)');
+      throw new BadRequestException(
+        'Hold is not active (may have expired or been confirmed)',
+      );
     }
 
     const seatIds = hold.items.map((item) => item.showSeatId);
@@ -112,12 +121,17 @@ export class SeatHoldsService {
     await this.repository.releaseSeatsToAvailable(seatIds, holdId);
 
     // Remove the scheduled expiry job (no longer needed)
-    const job = await this.holdQueue.getJob(`hold-expiry:${holdId}`);
+    const job = await this.holdQueue.getJob(holdExpiryJobId(holdId));
     if (job) await job.remove();
 
     // Broadcast seat releases
     for (const seatId of seatIds) {
-      this.realtimeGateway.broadcastSeatStatus(showId, seatId, 'AVAILABLE', null);
+      this.realtimeGateway.broadcastSeatStatus(
+        showId,
+        seatId,
+        'AVAILABLE',
+        null,
+      );
     }
 
     return { released: true, holdId };
@@ -128,5 +142,20 @@ export class SeatHoldsService {
     if (!hold) throw new NotFoundException('Hold not found');
     if (hold.userId !== user.id) throw new ForbiddenException('Not your hold');
     return hold;
+  }
+
+  async getMyActiveHolds(user: User) {
+    return this.prisma.seatHold.findMany({
+      where: {
+        userId: user.id,
+        status: 'ACTIVE',
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { expiresAt: 'asc' },
+      include: {
+        items: { include: { showSeat: { include: { venueSeat: true } } } },
+        show: { include: { event: true, venue: true } },
+      },
+    });
   }
 }

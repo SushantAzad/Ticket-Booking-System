@@ -24,22 +24,31 @@ export class WaitlistService {
     const show = await this.prisma.show.findUnique({ where: { id: showId } });
     if (!show) throw new NotFoundException('Show not found');
 
-    const category = await this.prisma.seatCategory.findUnique({ where: { id: categoryId } });
+    const category = await this.prisma.seatCategory.findUnique({
+      where: { id: categoryId },
+    });
     if (!category) throw new NotFoundException('Category not found');
 
     // Prevent duplicates
     const existing = await this.prisma.waitlistEntry.findUnique({
-      where: { userId_showId_categoryId: { userId: user.id, showId, categoryId } },
+      where: {
+        userId_showId_categoryId: { userId: user.id, showId, categoryId },
+      },
     });
 
     if (existing) {
       if (existing.status === 'WAITING') {
-        throw new ConflictException('You are already on the waitlist for this category');
+        throw new ConflictException(
+          'You are already on the waitlist for this category',
+        );
       }
       // If previous entry was cancelled/expired, let them rejoin at the back of the queue
       await this.prisma.waitlistEntry.update({
         where: { id: existing.id },
-        data: { status: 'WAITING', position: await this.getNextPosition(showId, categoryId) },
+        data: {
+          status: 'WAITING',
+          position: await this.getNextPosition(showId, categoryId),
+        },
       });
       return existing;
     }
@@ -66,9 +75,12 @@ export class WaitlistService {
   }
 
   async leaveWaitlist(entryId: string, user: User) {
-    const entry = await this.prisma.waitlistEntry.findUnique({ where: { id: entryId } });
+    const entry = await this.prisma.waitlistEntry.findUnique({
+      where: { id: entryId },
+    });
     if (!entry) throw new NotFoundException('Waitlist entry not found');
-    if (entry.userId !== user.id) throw new ForbiddenException('Not your entry');
+    if (entry.userId !== user.id)
+      throw new ForbiddenException('Not your entry');
 
     await this.prisma.waitlistEntry.update({
       where: { id: entryId },

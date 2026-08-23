@@ -1,41 +1,79 @@
-import { AiAssistant } from '@/components/ai-assistant/AiAssistant';
+import { AiAssistant } from "@/components/ai-assistant/AiAssistant";
+import Link from "next/link";
 
 export default function Home() {
   return (
-    <div className="flex flex-col items-center justify-center pt-24 pb-12 px-4">
-      <div className="max-w-4xl w-full text-center mb-16">
-        <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6">
-          Book your next experience{' '}
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
-            without the wait.
-          </span>
-        </h1>
-        <p className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto">
-          TicketFlow guarantees your seat instantly. No race conditions, no double bookings. 
-          Just ask our AI assistant what you're looking for.
-        </p>
+    <div className="page-shell page-enter py-16 sm:py-24">
+      <div className="grid items-end gap-12 lg:grid-cols-[1.05fr_0.95fr]">
+        <div>
+          <p className="eyebrow mb-5">Live experiences, beautifully booked</p>
+          <h1 className="max-w-3xl text-5xl font-black leading-[0.98] tracking-tight text-white sm:text-7xl">
+            Your night out starts <span className="text-[#70e1d0]">here.</span>
+          </h1>
+          <p className="muted mt-7 max-w-xl text-lg leading-8">
+            Find the right event, choose your view, and lock your seats before
+            they disappear.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link
+              href="/events"
+              className="button-primary rounded-xl px-5 py-3 text-sm"
+            >
+              Explore events
+            </Link>
+            <a
+              href="#assistant"
+              className="button-secondary rounded-xl px-5 py-3 text-sm font-bold"
+            >
+              Ask the concierge
+            </a>
+          </div>
+          <div className="mt-12 flex gap-8 border-t border-white/10 pt-5 text-sm">
+            <div>
+              <strong className="block text-xl text-white">10 min</strong>
+              <span className="muted">protected holds</span>
+            </div>
+            <div>
+              <strong className="block text-xl text-white">0%</strong>
+              <span className="muted">double-booking risk</span>
+            </div>
+            <div>
+              <strong className="block text-xl text-white">24/7</strong>
+              <span className="muted">seat updates</span>
+            </div>
+          </div>
+        </div>
+        <div id="assistant" className="relative lg:pb-4">
+          <div className="absolute -inset-5 rounded-[2rem] bg-[#70e1d0]/10 blur-3xl" />
+          <div className="relative">
+            <AiAssistant />
+          </div>
+        </div>
       </div>
-
-      <div className="w-full max-w-3xl">
-        <AiAssistant />
-      </div>
-
-      <div className="mt-24 grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-5xl">
-        <div className="glass p-6 rounded-2xl flex flex-col items-center text-center hover:-translate-y-1 transition-transform">
-          <div className="w-12 h-12 bg-blue-500/20 text-blue-400 rounded-full flex items-center justify-center text-2xl mb-4">⚡</div>
-          <h3 className="text-xl font-bold mb-2">Instant Holds</h3>
-          <p className="text-gray-400 text-sm">Your seat is locked the millisecond you click it. Zero chance of a double booking.</p>
-        </div>
-        <div className="glass p-6 rounded-2xl flex flex-col items-center text-center hover:-translate-y-1 transition-transform">
-          <div className="w-12 h-12 bg-purple-500/20 text-purple-400 rounded-full flex items-center justify-center text-2xl mb-4">🤖</div>
-          <h3 className="text-xl font-bold mb-2">AI Powered</h3>
-          <p className="text-gray-400 text-sm">Just tell us what you want. We'll find the best seats matching your budget and preferences.</p>
-        </div>
-        <div className="glass p-6 rounded-2xl flex flex-col items-center text-center hover:-translate-y-1 transition-transform">
-          <div className="w-12 h-12 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center text-2xl mb-4">🎫</div>
-          <h3 className="text-xl font-bold mb-2">Smart Waitlist</h3>
-          <p className="text-gray-400 text-sm">Sold out? Join the waitlist and get automatically assigned a ticket if someone cancels.</p>
-        </div>
+      <div className="mt-20 grid gap-4 md:grid-cols-3">
+        {[
+          [
+            "01",
+            "Instant holds",
+            "A short, protected window gives you time to check out.",
+          ],
+          [
+            "02",
+            "Real seat maps",
+            "See availability change live as people book around you.",
+          ],
+          [
+            "03",
+            "Grounded discovery",
+            "The assistant searches actual shows, prices, and seats.",
+          ],
+        ].map(([number, title, copy]) => (
+          <div key={number} className="panel rounded-2xl p-6">
+            <span className="eyebrow">{number}</span>
+            <h2 className="mt-8 text-xl font-bold">{title}</h2>
+            <p className="muted mt-3 leading-6">{copy}</p>
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -43,7 +43,9 @@ export class SeatHoldExpiryProcessor extends WorkerHost {
 
     if (expired === 0) {
       // Hold was already completed (booked) or released — no-op
-      this.logger.debug(`Hold ${holdId} already processed (booking won the race)`);
+      this.logger.debug(
+        `Hold ${holdId} already processed (booking won the race)`,
+      );
       return { skipped: true, holdId };
     }
 
@@ -52,12 +54,19 @@ export class SeatHoldExpiryProcessor extends WorkerHost {
 
     // Broadcast to all clients in the show room
     for (const seatId of seatIds) {
-      this.realtimeGateway.broadcastSeatStatus(showId, seatId, 'AVAILABLE', null);
+      this.realtimeGateway.broadcastSeatStatus(
+        showId,
+        seatId,
+        'AVAILABLE',
+        null,
+      );
     }
 
     this.realtimeGateway.broadcastHoldExpired(showId, holdId, seatIds);
 
-    this.logger.log(`Hold ${holdId} expired — ${seatIds.length} seat(s) released`);
+    this.logger.log(
+      `Hold ${holdId} expired — ${seatIds.length} seat(s) released`,
+    );
     return { expired: true, holdId, seatsReleased: seatIds.length };
   }
 

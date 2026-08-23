@@ -1,5 +1,9 @@
 import {
-  IsString, IsNotEmpty, IsEnum, IsOptional, IsUrl,
+  IsString,
+  IsNotEmpty,
+  IsEnum,
+  IsOptional,
+  IsUrl,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { EventType } from '@prisma/client';

@@ -1,5 +1,10 @@
 import { Controller, Get, UseGuards, Query } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -37,15 +42,16 @@ export class AdminController {
   @Get('dashboard')
   @ApiOperation({ summary: 'Platform-wide dashboard' })
   async getDashboard() {
-    const [userCount, eventCount, bookingCount, totalRevenue] = await Promise.all([
-      this.prisma.user.count(),
-      this.prisma.event.count(),
-      this.prisma.booking.count({ where: { status: 'CONFIRMED' } }),
-      this.prisma.booking.aggregate({
-        where: { status: 'CONFIRMED' },
-        _sum: { totalAmount: true },
-      }),
-    ]);
+    const [userCount, eventCount, bookingCount, totalRevenue] =
+      await Promise.all([
+        this.prisma.user.count(),
+        this.prisma.event.count(),
+        this.prisma.booking.count({ where: { status: 'CONFIRMED' } }),
+        this.prisma.booking.aggregate({
+          where: { status: 'CONFIRMED' },
+          _sum: { totalAmount: true },
+        }),
+      ]);
 
     return {
       totalUsers: userCount,

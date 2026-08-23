@@ -34,7 +34,10 @@ export class SeatsService {
         venueSeat: true,
         category: true,
       },
-      orderBy: [{ venueSeat: { row: 'asc' } }, { venueSeat: { number: 'asc' } }],
+      orderBy: [
+        { venueSeat: { row: 'asc' } },
+        { venueSeat: { number: 'asc' } },
+      ],
     });
 
     const priceMap = new Map(
@@ -133,9 +136,13 @@ export class SeatsService {
 
       // Budget fit
       const budgetScore =
-        preferences.maxBudgetPerSeat && seat.price <= preferences.maxBudgetPerSeat ? 10 : 0;
+        preferences.maxBudgetPerSeat &&
+        seat.price <= preferences.maxBudgetPerSeat
+          ? 10
+          : 0;
 
-      const total = centralityScore + Math.max(rowScore, 0) + categoryScore + budgetScore;
+      const total =
+        centralityScore + Math.max(rowScore, 0) + categoryScore + budgetScore;
 
       return {
         ...seat,
@@ -152,7 +159,11 @@ export class SeatsService {
     }
 
     // Find best contiguous group of N seats in the same row
-    return this.findBestContiguousGroup(scored, seatMap.rows, preferences.count);
+    return this.findBestContiguousGroup(
+      scored,
+      seatMap.rows,
+      preferences.count,
+    );
   }
 
   private findBestContiguousGroup(
@@ -164,7 +175,9 @@ export class SeatsService {
     let bestGroupScore = -1;
 
     for (const rowData of rows) {
-      const availableInRow = rowData.seats.filter((s) => s.status === 'AVAILABLE');
+      const availableInRow = rowData.seats.filter(
+        (s) => s.status === 'AVAILABLE',
+      );
       if (availableInRow.length < count) continue;
 
       // Sliding window of size `count`
@@ -178,7 +191,9 @@ export class SeatsService {
 
         if (!isContiguous) continue;
 
-        const windowScored = window.map((s) => scored.find((sc) => sc.id === s.id)!).filter(Boolean);
+        const windowScored = window
+          .map((s) => scored.find((sc) => sc.id === s.id)!)
+          .filter(Boolean);
         const groupScore = windowScored.reduce((sum, s) => sum + s.score, 0);
 
         if (groupScore > bestGroupScore) {

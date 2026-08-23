@@ -1,5 +1,11 @@
 import {
-  Controller, Post, Delete, Get, Body, Param, UseGuards,
+  Controller,
+  Post,
+  Delete,
+  Get,
+  Body,
+  Param,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { SeatHoldsService } from './seat-holds.service';
@@ -17,7 +23,8 @@ export class SeatHoldsController {
   @Post()
   @ApiOperation({
     summary: 'Create a seat hold (10-min TTL)',
-    description: 'Atomically holds seats using SELECT...FOR UPDATE. Returns SEAT_ALREADY_HELD if any seat is unavailable.',
+    description:
+      'Atomically holds seats using SELECT...FOR UPDATE. Returns SEAT_ALREADY_HELD if any seat is unavailable.',
   })
   createHold(
     @Param('showId') showId: string,

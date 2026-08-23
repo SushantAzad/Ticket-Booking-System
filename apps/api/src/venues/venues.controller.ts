@@ -1,9 +1,24 @@
 import {
-  Controller, Get, Post, Body, Param, Query, UseGuards,
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Query,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { VenuesService } from './venues.service';
-import { CreateVenueDto, CreateSeatCategoryDto, AddSeatsDto } from './dto/venue.dto';
+import {
+  CreateVenueDto,
+  CreateSeatCategoryDto,
+  AddSeatsDto,
+} from './dto/venue.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';

@@ -1,5 +1,9 @@
 import {
-  Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger,
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateShowDto } from './dto/show.dto';
@@ -14,7 +18,9 @@ export class ShowsService {
 
   async create(dto: CreateShowDto, user: User) {
     // Verify event exists and user has access
-    const event = await this.prisma.event.findUnique({ where: { id: dto.eventId } });
+    const event = await this.prisma.event.findUnique({
+      where: { id: dto.eventId },
+    });
     if (!event) throw new NotFoundException('Event not found');
     if (user.role !== Role.ADMIN && event.organiserId !== user.id) {
       throw new ForbiddenException('Only the event organiser can create shows');
@@ -44,7 +50,9 @@ export class ShowsService {
 
       // Create pricing entries
       for (const priceDto of dto.prices) {
-        const category = venue.seatCategories.find((c) => c.name === priceDto.category);
+        const category = venue.seatCategories.find(
+          (c) => c.name === priceDto.category,
+        );
         if (!category) continue;
 
         await tx.showSeatCategoryPrice.create({

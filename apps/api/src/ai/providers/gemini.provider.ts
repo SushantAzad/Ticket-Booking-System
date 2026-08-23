@@ -1,20 +1,30 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { AIProvider, StructuredFilters, RecommendationContext } from './ai-provider.interface';
+import {
+  AIProvider,
+  StructuredFilters,
+  RecommendationContext,
+} from './ai-provider.interface';
 
 @Injectable()
 export class GeminiProvider implements AIProvider {
   private readonly logger = new Logger(GeminiProvider.name);
   private ai: GoogleGenerativeAI | null = null;
-  private readonly modelName = 'gemini-1.5-pro';
+  private readonly modelName: string;
 
   constructor(private readonly configService: ConfigService) {
+    this.modelName = this.configService.get<string>(
+      'GEMINI_MODEL',
+      'gemini-2.5-flash',
+    );
     const apiKey = this.configService.get<string>('GEMINI_API_KEY');
     if (apiKey && apiKey !== 'mock-key') {
       this.ai = new GoogleGenerativeAI(apiKey);
     } else {
-      this.logger.warn('GEMINI_API_KEY is missing or mock. AI features will degrade gracefully.');
+      this.logger.warn(
+        'GEMINI_API_KEY is missing or mock. AI features will degrade gracefully.',
+      );
     }
   }
 
@@ -23,7 +33,7 @@ export class GeminiProvider implements AIProvider {
 
     try {
       const model = this.ai.getGenerativeModel({ model: this.modelName });
-      
+
       const prompt = `
         Extract search filters from the following query about booking event tickets.
         Return ONLY a JSON object matching this schema, with no markdown formatting or markdown code blocks:
@@ -41,12 +51,15 @@ export class GeminiProvider implements AIProvider {
 
       const result = await model.generateContent(prompt);
       const text = result.response.text().trim();
-      
+
       // Clean up in case the model ignored instructions and wrapped in ```json
-      const cleanText = text.replace(/^```json/i, '').replace(/```$/, '').trim();
-      
+      const cleanText = text
+        .replace(/^```json/i, '')
+        .replace(/```$/, '')
+        .trim();
+
       const parsed = JSON.parse(cleanText);
-      
+
       // Strip nulls
       const cleaned: any = {};
       for (const [key, value] of Object.entries(parsed)) {
@@ -54,7 +67,7 @@ export class GeminiProvider implements AIProvider {
           cleaned[key] = value;
         }
       }
-      
+
       return cleaned as StructuredFilters;
     } catch (error) {
       this.logger.error(`Gemini interpretEventQuery failed: ${error.message}`);
@@ -67,7 +80,7 @@ export class GeminiProvider implements AIProvider {
 
     try {
       const model = this.ai.getGenerativeModel({ model: this.modelName });
-      
+
       const prompt = `
         You are a helpful ticketing assistant. Explain why these specific seats were chosen 
         for the user's query. Keep it to 2-3 short, friendly sentences.
@@ -83,7 +96,9 @@ export class GeminiProvider implements AIProvider {
       const result = await model.generateContent(prompt);
       return result.response.text().trim();
     } catch (error) {
-      this.logger.error(`Gemini explainRecommendation failed: ${error.message}`);
+      this.logger.error(
+        `Gemini explainRecommendation failed: ${error.message}`,
+      );
       return this.mockExplain(context);
     }
   }
@@ -91,17 +106,18 @@ export class GeminiProvider implements AIProvider {
   private mockInterpret(text: string): StructuredFilters {
     const filters: StructuredFilters = {};
     const lower = text.toLowerCase();
-    
+
     if (lower.includes('movie')) filters.type = 'MOVIE';
     if (lower.includes('concert')) filters.type = 'CONCERT';
-    if (lower.includes('comedy') || lower.includes('stand up')) filters.type = 'LIVE_EVENT';
-    
+    if (lower.includes('comedy') || lower.includes('stand up'))
+      filters.type = 'LIVE_EVENT';
+
     if (lower.includes('mumbai')) filters.city = 'Mumbai';
     if (lower.includes('bangalore')) filters.city = 'Bangalore';
-    
+
     const countMatch = text.match(/(\d+)\s*tickets?/i);
     if (countMatch) filters.ticketCount = parseInt(countMatch[1], 10);
-    
+
     return filters;
   }
 

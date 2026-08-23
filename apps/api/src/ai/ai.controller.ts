@@ -17,7 +17,9 @@ export class AiController {
   constructor(private readonly aiService: AiService) {}
 
   @Post('event-search')
-  @ApiOperation({ summary: 'AI-powered natural language event search and seat recommendation' })
+  @ApiOperation({
+    summary: 'AI-powered natural language event search and seat recommendation',
+  })
   search(@Body() dto: AiQueryDto) {
     return this.aiService.processEventQuery(dto.query);
   }

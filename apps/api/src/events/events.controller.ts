@@ -1,7 +1,22 @@
 import {
-  Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, HttpCode, HttpStatus,
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { EventType } from '@prisma/client';
 import { EventsService } from './events.service';
 import { CreateEventDto, UpdateEventDto } from './dto/event.dto';
@@ -41,7 +56,14 @@ export class EventsController {
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
-    return this.eventsService.findAll({ type, genre, city, search, page, limit });
+    return this.eventsService.findAll({
+      type,
+      genre,
+      city,
+      search,
+      page,
+      limit,
+    });
   }
 
   @Get(':id')
@@ -55,7 +77,11 @@ export class EventsController {
   @Roles(Role.ADMIN, Role.ORGANISER)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update an event' })
-  update(@Param('id') id: string, @Body() dto: UpdateEventDto, @CurrentUser() user: any) {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateEventDto,
+    @CurrentUser() user: any,
+  ) {
     return this.eventsService.update(id, dto, user);
   }
 

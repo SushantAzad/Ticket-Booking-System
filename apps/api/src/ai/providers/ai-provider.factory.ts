@@ -12,8 +12,11 @@ export class AiProviderFactory {
   ) {}
 
   getProvider(): AIProvider {
-    const providerName = this.configService.get<string>('AI_PROVIDER', 'gemini');
-    
+    const providerName = this.configService.get<string>(
+      'AI_PROVIDER',
+      'gemini',
+    );
+
     switch (providerName.toLowerCase()) {
       case 'gemini':
         return this.geminiProvider;

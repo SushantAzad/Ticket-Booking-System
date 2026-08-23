@@ -28,7 +28,9 @@ import { ShowSeatStatus } from '@prisma/client';
   },
   namespace: '/realtime',
 })
-export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class RealtimeGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   private server: Server;
 
@@ -87,7 +89,12 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
     });
   }
 
-  broadcastOfferCreated(showId: string, userId: string, offerId: string, expiresAt: Date) {
+  broadcastOfferCreated(
+    showId: string,
+    userId: string,
+    offerId: string,
+    expiresAt: Date,
+  ) {
     // Targeted: emitted to the show room but includes userId so clients can
     // filter for their own user
     this.server.to(`show:${showId}`).emit('offer.created', {

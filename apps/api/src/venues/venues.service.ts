@@ -5,7 +5,11 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateVenueDto, CreateSeatCategoryDto, AddSeatsDto } from './dto/venue.dto';
+import {
+  CreateVenueDto,
+  CreateSeatCategoryDto,
+  AddSeatsDto,
+} from './dto/venue.dto';
 import { Role, User } from '@prisma/client';
 
 @Injectable()
@@ -58,7 +62,10 @@ export class VenuesService {
       where: { venueId_name: { venueId, name: dto.name } },
     });
 
-    if (existing) throw new ConflictException(`Category ${dto.name} already exists for this venue`);
+    if (existing)
+      throw new ConflictException(
+        `Category ${dto.name} already exists for this venue`,
+      );
 
     return this.prisma.seatCategory.create({
       data: { venueId, name: dto.name, colorCode: dto.colorCode },
@@ -78,7 +85,9 @@ export class VenuesService {
     const created: unknown[] = [];
 
     for (const range of dto.ranges) {
-      const category = venue.seatCategories.find((c) => c.name === range.category);
+      const category = venue.seatCategories.find(
+        (c) => c.name === range.category,
+      );
       if (!category) {
         throw new NotFoundException(
           `Category ${range.category} not found for venue. Create it first.`,
@@ -109,8 +118,11 @@ export class VenuesService {
   private async assertVenueAccess(venueId: string, user: User) {
     if (user.role === Role.ADMIN) return;
 
-    const venue = await this.prisma.venue.findUnique({ where: { id: venueId } });
+    const venue = await this.prisma.venue.findUnique({
+      where: { id: venueId },
+    });
     if (!venue) throw new NotFoundException('Venue not found');
-    if (venue.createdById !== user.id) throw new ForbiddenException('Access denied');
+    if (venue.createdById !== user.id)
+      throw new ForbiddenException('Access denied');
   }
 }

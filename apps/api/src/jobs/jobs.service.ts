@@ -43,9 +43,18 @@ export class JobsService {
         await this.holdsRepo.releaseSeatsToAvailable(seatIds, hold.id);
 
         for (const seatId of seatIds) {
-          this.realtimeGateway.broadcastSeatStatus(hold.showId, seatId, 'AVAILABLE', null);
+          this.realtimeGateway.broadcastSeatStatus(
+            hold.showId,
+            seatId,
+            'AVAILABLE',
+            null,
+          );
         }
-        this.realtimeGateway.broadcastHoldExpired(hold.showId, hold.id, seatIds);
+        this.realtimeGateway.broadcastHoldExpired(
+          hold.showId,
+          hold.id,
+          seatIds,
+        );
         this.logger.log(`Swept hold ${hold.id}`);
       }
     }
@@ -66,7 +75,9 @@ export class JobsService {
 
     if (expiredOffers.length === 0) return;
 
-    this.logger.log(`Found ${expiredOffers.length} expired waitlist offers to sweep`);
+    this.logger.log(
+      `Found ${expiredOffers.length} expired waitlist offers to sweep`,
+    );
 
     for (const offer of expiredOffers) {
       await this.waitlistService.expireOfferAndReassign(offer.id);

@@ -74,7 +74,7 @@ export class SeatHoldsRepository {
             Array<{ id: string; status: string; version: number }>
           >`
             SELECT id, status, version
-            FROM show_seats
+            FROM "show_seats"
             WHERE id = ${seatId}
             FOR UPDATE
           `;
@@ -96,9 +96,9 @@ export class SeatHoldsRepository {
           // pass the status check, the one that updates second will find rowCount = 0
           // because the first already incremented the version.
           const updateResult = await tx.$executeRaw`
-            UPDATE show_seats
+            UPDATE "show_seats"
             SET status = 'HELD',
-                hold_id = ${holdId},
+              "holdId" = ${holdId},
                 version = version + 1
             WHERE id = ${seatId}
               AND status = 'AVAILABLE'
@@ -140,8 +140,8 @@ export class SeatHoldsRepository {
    */
   async conditionalExpire(holdId: string): Promise<number> {
     return this.prisma.$executeRaw`
-      UPDATE seat_holds
-      SET status = 'EXPIRED', released_at = now()
+      UPDATE "seat_holds"
+      SET status = 'EXPIRED', "releasedAt" = now()
       WHERE id = ${holdId}
         AND status = 'ACTIVE'
     `;
@@ -155,11 +155,11 @@ export class SeatHoldsRepository {
    */
   async conditionalComplete(holdId: string): Promise<number> {
     return this.prisma.$executeRaw`
-      UPDATE seat_holds
-      SET status = 'COMPLETED', booked_at = now()
+      UPDATE "seat_holds"
+      SET status = 'COMPLETED', "bookedAt" = now()
       WHERE id = ${holdId}
         AND status = 'ACTIVE'
-        AND expires_at > now()
+        AND "expiresAt" > now()
     `;
   }
 
@@ -169,8 +169,8 @@ export class SeatHoldsRepository {
    */
   async conditionalRelease(holdId: string): Promise<number> {
     return this.prisma.$executeRaw`
-      UPDATE seat_holds
-      SET status = 'RELEASED', released_at = now()
+      UPDATE "seat_holds"
+      SET status = 'RELEASED', "releasedAt" = now()
       WHERE id = ${holdId}
         AND status = 'ACTIVE'
     `;
@@ -198,15 +198,18 @@ export class SeatHoldsRepository {
    * Must be called AFTER conditionalExpire to avoid releasing seats
    * that are being concurrently confirmed.
    */
-  async releaseSeatsToAvailable(seatIds: string[], holdId: string): Promise<void> {
+  async releaseSeatsToAvailable(
+    seatIds: string[],
+    holdId: string,
+  ): Promise<void> {
     await this.prisma.$executeRaw`
-      UPDATE show_seats
+      UPDATE "show_seats"
       SET status = 'AVAILABLE',
-          hold_id = NULL,
+          "holdId" = NULL,
           version = version + 1
       WHERE id = ANY(${seatIds}::text[])
         AND status = 'HELD'
-        AND hold_id = ${holdId}
+        AND "holdId" = ${holdId}
     `;
   }
 }

@@ -68,10 +68,15 @@ export class BookingsService {
     });
 
     let totalAmount = new Decimal(0);
-    const bookingSeatData: Array<{ showSeatId: string; priceAtBooking: Decimal }> = [];
+    const bookingSeatData: Array<{
+      showSeatId: string;
+      priceAtBooking: Decimal;
+    }> = [];
 
     for (const showSeat of showSeatsWithCategory) {
-      const priceRecord = prices.find((p) => p.categoryId === showSeat.categoryId);
+      const priceRecord = prices.find(
+        (p) => p.categoryId === showSeat.categoryId,
+      );
       const price = priceRecord?.price ?? new Decimal(0);
       totalAmount = totalAmount.plus(price);
       bookingSeatData.push({ showSeatId: showSeat.id, priceAtBooking: price });
@@ -91,7 +96,11 @@ export class BookingsService {
           },
         },
         include: {
-          bookingSeats: { include: { showSeat: { include: { venueSeat: true, category: true } } } },
+          bookingSeats: {
+            include: {
+              showSeat: { include: { venueSeat: true, category: true } },
+            },
+          },
           show: { include: { event: true, venue: true } },
         },
       });
@@ -113,7 +122,12 @@ export class BookingsService {
 
     // Broadcast seat status changes
     for (const seatId of seatIds) {
-      this.realtimeGateway.broadcastSeatStatus(hold.showId, seatId, 'BOOKED', null);
+      this.realtimeGateway.broadcastSeatStatus(
+        hold.showId,
+        seatId,
+        'BOOKED',
+        null,
+      );
     }
 
     return booking;
@@ -123,14 +137,18 @@ export class BookingsService {
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
       include: {
-        bookingSeats: { include: { showSeat: { include: { category: true } } } },
+        bookingSeats: {
+          include: { showSeat: { include: { category: true } } },
+        },
         show: true,
       },
     });
 
     if (!booking) throw new NotFoundException('Booking not found');
-    if (booking.userId !== user.id) throw new ForbiddenException('Not your booking');
-    if (booking.status === 'CANCELLED') throw new BadRequestException('Already cancelled');
+    if (booking.userId !== user.id)
+      throw new ForbiddenException('Not your booking');
+    if (booking.status === 'CANCELLED')
+      throw new BadRequestException('Already cancelled');
 
     const seatIds = booking.bookingSeats.map((bs) => bs.showSeatId);
 
@@ -188,7 +206,12 @@ export class BookingsService {
             where: { id: seat.id },
             data: { status: 'AVAILABLE', bookingId: null },
           });
-          this.realtimeGateway.broadcastSeatStatus(booking.showId, seat.id, 'AVAILABLE', null);
+          this.realtimeGateway.broadcastSeatStatus(
+            booking.showId,
+            seat.id,
+            'AVAILABLE',
+            null,
+          );
         }
       }
     });
@@ -211,7 +234,8 @@ export class BookingsService {
     });
 
     if (!booking) throw new NotFoundException('Booking not found');
-    if (booking.userId !== user.id) throw new ForbiddenException('Not your booking');
+    if (booking.userId !== user.id)
+      throw new ForbiddenException('Not your booking');
 
     return booking;
   }
@@ -232,6 +256,9 @@ export class BookingsService {
       this.prisma.booking.count({ where: { userId: user.id } }),
     ]);
 
-    return { bookings, pagination: { total, page, limit, pages: Math.ceil(total / limit) } };
+    return {
+      bookings,
+      pagination: { total, page, limit, pages: Math.ceil(total / limit) },
+    };
   }
 }

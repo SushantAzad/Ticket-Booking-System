@@ -42,6 +42,7 @@ export class AiService {
       return {
         filters,
         events: [],
+        recommendedShowId: null,
         message: 'I could not find any events matching your request.',
       };
     }
@@ -80,6 +81,7 @@ export class AiService {
     return {
       filters,
       events,
+      recommendedShowId: topEvent.shows?.[0]?.id ?? null,
       recommendedSeats,
       explanation,
     };

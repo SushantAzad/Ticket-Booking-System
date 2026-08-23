@@ -1,5 +1,11 @@
 import {
-  Controller, Post, Delete, Get, Body, Param, UseGuards,
+  Controller,
+  Post,
+  Delete,
+  Get,
+  Body,
+  Param,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { WaitlistService } from './waitlist.service';

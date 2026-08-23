@@ -34,9 +34,15 @@ export class AuthService {
         email: dto.email,
         name: dto.name,
         passwordHash,
-        role: dto.role ?? 'CUSTOMER',
+        role: 'CUSTOMER',
       },
-      select: { id: true, email: true, name: true, role: true, createdAt: true },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        createdAt: true,
+      },
     });
 
     const tokens = this.generateTokens(user.id, user.email, user.role);
@@ -53,7 +59,10 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    const isPasswordValid = await bcrypt.compare(dto.password, user.passwordHash);
+    const isPasswordValid = await bcrypt.compare(
+      dto.password,
+      user.passwordHash,
+    );
 
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid email or password');

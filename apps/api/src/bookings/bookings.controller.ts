@@ -1,7 +1,21 @@
 import {
-  Controller, Post, Get, Delete, Body, Param, Query, UseGuards, HttpCode, HttpStatus,
+  Controller,
+  Post,
+  Get,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/booking.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -17,7 +31,8 @@ export class BookingsController {
   @Post()
   @ApiOperation({
     summary: 'Confirm a seat hold into a booking',
-    description: 'Race-safe transition: HOLD_ACTIVE → BOOKING_CONFIRMED. Returns HOLD_EXPIRED if hold TTL passed.',
+    description:
+      'Race-safe transition: HOLD_ACTIVE → BOOKING_CONFIRMED. Returns HOLD_EXPIRED if hold TTL passed.',
   })
   confirm(@Body() dto: CreateBookingDto, @CurrentUser() user: any) {
     return this.bookingsService.confirmBooking(dto, user);

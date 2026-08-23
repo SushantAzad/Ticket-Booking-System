@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Delete, Body, Param, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Body,
+  Param,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { ShowsService } from './shows.service';
 import { CreateShowDto } from './dto/show.dto';
@@ -17,7 +27,9 @@ export class ShowsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.ORGANISER)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create a show (generates ShowSeats from venue layout)' })
+  @ApiOperation({
+    summary: 'Create a show (generates ShowSeats from venue layout)',
+  })
   create(@Body() dto: CreateShowDto, @CurrentUser() user: any) {
     return this.showsService.create(dto, user);
   }
@@ -29,7 +41,9 @@ export class ShowsController {
   }
 
   @Get(':id/availability')
-  @ApiOperation({ summary: 'Get seat availability counts by category and status' })
+  @ApiOperation({
+    summary: 'Get seat availability counts by category and status',
+  })
   getAvailability(@Param('id') id: string) {
     return this.showsService.getAvailabilityStats(id);
   }

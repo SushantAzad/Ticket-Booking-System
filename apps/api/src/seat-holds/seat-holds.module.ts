@@ -4,6 +4,7 @@ import { SeatHoldsController } from './seat-holds.controller';
 import { SeatHoldsService, SEAT_HOLD_QUEUE } from './seat-holds.service';
 import { SeatHoldsRepository } from './seat-holds.repository';
 import { SeatHoldExpiryProcessor } from './seat-hold-expiry.processor';
+import { MyHoldsController } from './my-holds.controller';
 import { RealtimeModule } from '../realtime/realtime.module';
 
 @Module({
@@ -11,8 +12,8 @@ import { RealtimeModule } from '../realtime/realtime.module';
     BullModule.registerQueue({ name: SEAT_HOLD_QUEUE }),
     RealtimeModule,
   ],
-  controllers: [SeatHoldsController],
+  controllers: [SeatHoldsController, MyHoldsController],
   providers: [SeatHoldsService, SeatHoldsRepository, SeatHoldExpiryProcessor],
-  exports: [SeatHoldsService, SeatHoldsRepository, SEAT_HOLD_QUEUE],
+  exports: [SeatHoldsService, SeatHoldsRepository],
 })
 export class SeatHoldsModule {}

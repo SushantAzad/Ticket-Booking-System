@@ -7,7 +7,12 @@ import { WaitlistModule } from '../waitlist/waitlist.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 
 @Module({
-  imports: [SeatHoldsModule, NotificationsModule, WaitlistModule, RealtimeModule],
+  imports: [
+    SeatHoldsModule,
+    NotificationsModule,
+    WaitlistModule,
+    RealtimeModule,
+  ],
   controllers: [BookingsController],
   providers: [BookingsService],
   exports: [BookingsService],
