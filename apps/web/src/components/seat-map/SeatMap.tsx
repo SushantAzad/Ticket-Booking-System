@@ -35,7 +35,7 @@ export const SeatMap = ({ showId }: { showId: string }) => {
     // 1. Fetch initial state
     const loadSeatMap = async () => {
       try {
-        const response = await fetch(`/api/v1/shows/${showId}/seats`, {
+        const response = await fetch(`/api/v1/shows/${showId}`, {
           cache: "no-store",
         });
         const payload = await response.json();
@@ -126,7 +126,7 @@ export const SeatMap = ({ showId }: { showId: string }) => {
     setHolding(true);
     setActionMessage("");
     try {
-      const latestResponse = await fetch(`/api/v1/shows/${showId}/seats`, {
+      const latestResponse = await fetch(`/api/v1/shows/${showId}`, {
         cache: "no-store",
       });
       const latestPayload = await latestResponse.json();
