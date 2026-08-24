@@ -1,6 +1,8 @@
 import axios from "axios";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://ticket-booking-system-ln0w.onrender.com/api/v1";
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -13,18 +15,22 @@ export const apiClient = axios.create({
 apiClient.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
     const token = localStorage.getItem("ticketflow_access_token");
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
   }
+
   return config;
 });
 
 apiClient.interceptors.response.use((response) => {
   const body = response.data;
+
   if (body && typeof body === "object" && "data" in body && "success" in body) {
     response.data = body.data;
   }
+
   return response;
 });
 
