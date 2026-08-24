@@ -1,6 +1,8 @@
-import { io, Socket } from 'socket.io-client';
+import { io, Socket } from "socket.io-client";
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3000/realtime';
+const SOCKET_URL =
+  process.env.NEXT_PUBLIC_SOCKET_URL ||
+  "https://ticket-booking-system-1n0w.onrender.com/realtime";
 
 let socket: Socket | null = null;
 
