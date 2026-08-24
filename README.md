@@ -3,7 +3,6 @@
 A full-stack ticketing platform for movies and live events, built with NestJS, Next.js, PostgreSQL, and Redis. Customers browse events, pick seats from a live visual map, hold them for a limited window, confirm bookings, get a QR ticket by email, and join a category-specific waitlist when a show sells out.
 
 **Live app:** https://ticket-booking-system-web-nu.vercel.app/
-**Repository:** https://github.com/SushantAzad/Ticket-Booking-System
 
 ![TicketFlow home page with the AI concierge search panel](images/1.png)
 
@@ -31,17 +30,16 @@ High-demand events sell out in seconds, and last-minute cancellations usually go
 
 ## Screenshots
 
-**Home, with the AI-grounded concierge for natural-language event search**
+**Event discovery, with live pricing and city filters**
 
 ![Home page hero section](images/2.png)
 
-**Event discovery, with live pricing and city filters**
-
-![Events listing page](images/3.png)
 
 **Live seat map, color-coded by category and status**
 
-![Seat selection screen with available, held, and booked seats](screenshots/03-seat-map.png)
+![Events listing page](images/3.png)
+
+
 
 ## Features
 
