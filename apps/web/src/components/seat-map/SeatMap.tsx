@@ -19,8 +19,16 @@ interface Seat {
 
 interface SeatMapData {
   showId: string;
-  categories: { id: string; name: string; colorCode: string; price: number }[];
-  rows: { row: string; seats: Seat[] }[];
+  categories: {
+    id: string;
+    name: string;
+    colorCode: string;
+    price: number;
+  }[];
+  rows: {
+    row: string;
+    seats: Seat[];
+  }[];
 }
 
 export const SeatMap = ({ showId }: { showId: string }) => {
@@ -32,34 +40,33 @@ export const SeatMap = ({ showId }: { showId: string }) => {
   const [holding, setHolding] = useState(false);
 
   useEffect(() => {
-    // 1. Fetch initial state
     const loadSeatMap = async () => {
       try {
-        const response = await fetch(`/api/v1/shows/${showId}`, {
-          cache: "no-store",
-        });
-        const payload = await response.json();
-        const seatMap = payload.data ?? payload;
-        if (!response.ok || !seatMap?.rows) {
-          throw new Error(
-            payload.message || `Seat map request failed (${response.status})`,
-          );
+        const response = await apiClient.get(`/shows/${showId}/seats`);
+
+        const seatMap = response.data;
+
+        if (!seatMap?.rows) {
+          throw new Error("Invalid seat map response.");
         }
+
         setData(seatMap);
       } catch (requestError: unknown) {
         const message =
           requestError instanceof Error
             ? requestError.message
             : "Unknown request error";
+
         setError(`Unable to load this seat map: ${message}`);
       } finally {
         setLoading(false);
       }
     };
+
     void loadSeatMap();
 
-    // 2. Connect socket for live updates
     const socket = connectSocket();
+
     socket.emit("join_show", { showId });
 
     socket.on(
@@ -68,22 +75,33 @@ export const SeatMap = ({ showId }: { showId: string }) => {
         if (update.status !== "AVAILABLE") {
           setSelectedSeats((previous) => {
             if (!previous.has(update.seatId)) return previous;
+
             const next = new Set(previous);
             next.delete(update.seatId);
+
             return next;
           });
         }
+
         setData((prev) => {
           if (!prev) return prev;
+
           const newRows = prev.rows.map((row) => ({
             ...row,
             seats: row.seats.map((seat) =>
               seat.id === update.seatId
-                ? { ...seat, status: update.status as Seat["status"] }
+                ? {
+                    ...seat,
+                    status: update.status,
+                  }
                 : seat,
             ),
           }));
-          return { ...prev, rows: newRows };
+
+          return {
+            ...prev,
+            rows: newRows,
+          };
         });
       },
     );
@@ -91,15 +109,23 @@ export const SeatMap = ({ showId }: { showId: string }) => {
     socket.on("hold.expired", (update: { seatIds: string[] }) => {
       setData((prev) => {
         if (!prev) return prev;
+
         const newRows = prev.rows.map((row) => ({
           ...row,
           seats: row.seats.map((seat) =>
             update.seatIds.includes(seat.id)
-              ? { ...seat, status: "AVAILABLE" as const }
+              ? {
+                  ...seat,
+                  status: "AVAILABLE" as const,
+                }
               : seat,
           ),
         }));
-        return { ...prev, rows: newRows };
+
+        return {
+          ...prev,
+          rows: newRows,
+        };
       });
     });
 
@@ -112,69 +138,81 @@ export const SeatMap = ({ showId }: { showId: string }) => {
   const toggleSeat = (seatId: string) => {
     setSelectedSeats((prev) => {
       const next = new Set(prev);
+
       if (next.has(seatId)) {
         next.delete(seatId);
       } else {
         next.add(seatId);
       }
+
       return next;
     });
   };
 
   const holdSeats = async () => {
     if (selectedSeats.size === 0) return;
+
     setHolding(true);
     setActionMessage("");
+
     try {
-      const latestResponse = await fetch(`/api/v1/shows/${showId}`, {
-        cache: "no-store",
-      });
-      const latestPayload = await latestResponse.json();
-      const latestMap = latestPayload.data ?? latestPayload;
-      if (!latestResponse.ok || !latestMap?.rows) {
-        throw new Error(
-          latestPayload.message || "Unable to refresh seat availability.",
-        );
+      const latestResponse = await apiClient.get(`/shows/${showId}/seats`);
+
+      const latestMap = latestResponse.data;
+
+      if (!latestMap?.rows) {
+        throw new Error("Unable to refresh seat availability.");
       }
 
       const latestSeats = latestMap.rows.flatMap(
         (row: { seats: Seat[] }) => row.seats,
       );
+
       const availableIds = new Set(
         latestSeats
           .filter((seat: Seat) => seat.status === "AVAILABLE")
           .map((seat: Seat) => seat.id),
       );
+
       const seatIds = Array.from(selectedSeats);
+
       const unavailableSeats = seatIds.filter(
         (seatId) => !availableIds.has(seatId),
       );
+
       setData(latestMap);
 
       if (unavailableSeats.length > 0) {
         setSelectedSeats((previous) => {
           const next = new Set(previous);
+
           unavailableSeats.forEach((seatId) => next.delete(seatId));
+
           return next;
         });
+
         setActionMessage(
-          "One or more selected seats were just taken. Choose the highlighted available seats and try again.",
+          "One or more selected seats were just taken. Choose available seats and try again.",
         );
+
         return;
       }
 
       const res = await apiClient.post(`/shows/${showId}/holds`, { seatIds });
+
       setSelectedSeats(new Set());
+
       setActionMessage(
         `Seats held successfully for 10 minutes. Hold ID: ${res.data.id}`,
       );
     } catch (error: unknown) {
-      const responseMessage = axiosErrorMessage(error);
-      setActionMessage(responseMessage);
+      setActionMessage(axiosErrorMessage(error));
     } finally {
       setHolding(false);
     }
   };
+
+  // Rest of your JSX remains unchanged
 
   if (loading)
     return (
