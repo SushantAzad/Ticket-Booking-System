@@ -28,6 +28,46 @@ docker compose down
 
 Run API tests with `npm test`. Run the concurrency checks with `npm run test:concurrency`.
 
+## Production Hosting
+
+Vercel should host the Next.js frontend only. This API is a persistent NestJS service: it uses Socket.IO for live seat updates, BullMQ workers for hold expiry, and scheduled jobs for hold and waitlist cleanup. Those processes should run on a persistent container or Node host such as Railway, Render, Fly.io, or an equivalent service. Do not deploy the API, PostgreSQL, or Redis using Vercel serverless functions.
+
+Recommended topology:
+
+```text
+Vercel (apps/web) -> public NestJS API (apps/api)
+						 |-> managed PostgreSQL
+						 |-> managed Redis
+						 |-> Resend
+```
+
+### Deploy the API
+
+1. Provision managed PostgreSQL and Redis. Neon, Supabase, Railway, Render, and Upstash are common options. Use a Redis provider that supports BullMQ and TLS if required.
+2. Create a persistent Node service from this repository. Use the repository root as its working directory.
+3. Set the build command to `npm install && npm run build --workspace=apps/api` and the start command to `npm run start:prod --workspace=apps/api`.
+4. Set `PORT` from the host's injected port, `DATABASE_URL` to the managed PostgreSQL connection string, and `REDIS_HOST`, `REDIS_PORT`, and `REDIS_PASSWORD` to the managed Redis values. If the provider gives a complete Redis URL instead, adapt the BullMQ connection configuration before deploying.
+5. Run `npm run db:push --workspace=apps/api` once against the production database, or use a reviewed Prisma migration workflow. Run the seed command only when you intentionally want demo data.
+6. Add `JWT_SECRET`, `JWT_REFRESH_SECRET`, `QR_SECRET`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `GEMINI_API_KEY`, `GEMINI_MODEL`, and `FRONTEND_URL=https://<your-vercel-domain>` as secrets.
+7. Verify `https://<api-domain>/api/v1/events` and `https://<api-domain>/api/docs` before connecting the frontend.
+
+### Deploy the frontend to Vercel
+
+1. Import the repository into Vercel and select the `apps/web` application. For a monorepo project, set the root directory to `apps/web`; if Vercel installs from the repository root, use the workspace commands from the API instructions and keep the web build command as `npm run build --workspace=apps/web`.
+2. Add these Vercel environment variables for Production, Preview, and Development:
+
+```env
+NEXT_PUBLIC_API_URL=https://<api-domain>/api/v1
+API_URL=https://<api-domain>
+NEXT_PUBLIC_SOCKET_URL=https://<api-domain>/realtime
+```
+
+3. Redeploy after setting variables. `API_URL` controls the Next.js rewrite, while `NEXT_PUBLIC_SOCKET_URL` controls browser Socket.IO connections. The API must allow the Vercel domain in `FRONTEND_URL` and CORS.
+
+### What happens to Docker?
+
+The current `docker-compose.yml` is a local development setup for PostgreSQL and Redis. Vercel does not run that Compose file and its containers disappear after a deployment. In production, replace those two containers with managed PostgreSQL and Redis, or run the Compose services on a VM/container host. The NestJS API can also be packaged as a Docker image on a host that supports persistent containers, but it should not be treated as a Vercel serverless function because workers, cron jobs, and WebSockets need a continuously running process.
+
 ## Configuration
 
 Copy `apps/api/.env.example` to `apps/api/.env`. The important settings are:
@@ -98,4 +138,3 @@ An offer is active for 30 minutes and stores its own expiry timestamp. A schedul
 - `waitlist`: join, leave, and inspect waitlist entries
 - `tickets/{ticketId}/verify`: QR ticket verification
 - `ai/event-search`: grounded natural-language event and seat discovery
-
