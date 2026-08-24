@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import Link from "next/link";
-import { AuthNav } from "@/components/auth/AuthNav";
+import { AppNav } from "@/components/navigation/AppNav";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -34,27 +34,7 @@ export default function RootLayout({
                 TicketFlow<span className="text-[#70e1d0]">.</span>
               </span>
             </Link>
-            <div className="flex items-center gap-2 sm:gap-6">
-              <Link
-                href="/"
-                className="rounded-lg px-2 py-2 text-sm font-semibold text-slate-300 hover:text-white"
-              >
-                Home
-              </Link>
-              <Link
-                href="/events"
-                className="rounded-lg px-2 py-2 text-sm font-semibold text-slate-300 hover:text-white"
-              >
-                Events
-              </Link>
-              <Link
-                href="/dashboard"
-                className="rounded-lg px-2 py-2 text-sm font-semibold text-slate-300 hover:text-white"
-              >
-                Dashboard
-              </Link>
-              <AuthNav />
-            </div>
+            <AppNav />
           </div>
         </nav>
         <main className="min-h-screen">{children}</main>

@@ -12,13 +12,20 @@ import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto } from './dto/auth.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { IsString } from 'class-validator';
+import { IsEnum, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { Role } from '@prisma/client';
 
 class RefreshTokenDto {
   @ApiProperty()
   @IsString()
   refreshToken: string;
+}
+
+class UpdateRoleDto {
+  @ApiProperty({ enum: Role })
+  @IsEnum(Role)
+  role: Role;
 }
 
 @ApiTags('auth')
@@ -52,5 +59,15 @@ export class AuthController {
   @ApiOperation({ summary: 'Get current authenticated user' })
   me(@CurrentUser() user: any) {
     return user;
+  }
+
+  @Post('role')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Update a user role during onboarding' })
+  async updateRole(@CurrentUser() user: any, @Body() dto: UpdateRoleDto) {
+    const updatedUser = await this.authService.updateRole(user.id, dto.role);
+    return { user: updatedUser };
   }
 }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiClient, setAuthToken } from "@/lib/api-client";
+import { routeUserAfterLogin, storeAuthState } from "@/lib/auth";
 
 type AuthMode = "login" | "signup";
 
@@ -30,16 +31,18 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
         isLogin ? { email, password } : { name, email, password },
       );
       setAuthToken(response.data.accessToken);
-      localStorage.setItem(
-        "ticketflow_access_token",
-        response.data.accessToken,
-      );
-      localStorage.setItem(
-        "ticketflow_user",
-        JSON.stringify(response.data.user),
-      );
-      window.dispatchEvent(new Event("ticketflow-auth-changed"));
-      router.push("/dashboard");
+      const user = response.data.user ?? {};
+      storeAuthState(response.data.accessToken, user);
+
+      const route = routeUserAfterLogin(user);
+      if (
+        route === "/onboarding" &&
+        !localStorage.getItem("ticketflow_onboarded")
+      ) {
+        router.push(route);
+        return;
+      }
+      router.push(route);
     } catch (requestError: unknown) {
       const response = requestError as {
         response?: { data?: { message?: string | string[] } };
