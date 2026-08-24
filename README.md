@@ -99,4 +99,3 @@ An offer is active for 30 minutes and stores its own expiry timestamp. A schedul
 - `tickets/{ticketId}/verify`: QR ticket verification
 - `ai/event-search`: grounded natural-language event and seat discovery
 
-# Ticket-Booking-System
