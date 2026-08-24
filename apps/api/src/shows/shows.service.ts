@@ -31,6 +31,26 @@ export class ShowsService {
       include: { seatCategories: true, venueSeats: true },
     });
     if (!venue) throw new NotFoundException('Venue not found');
+    if (venue.seatCategories.length === 0 || venue.venueSeats.length === 0) {
+      throw new BadRequestException(
+        'Venue must have seat categories and seats before a show can be created',
+      );
+    }
+
+    const configuredCategories = new Set(
+      venue.seatCategories.map((c) => c.name),
+    );
+    const requestedCategories = new Set(
+      dto.prices.map((price) => price.category),
+    );
+    const hasInvalidCategory = [...requestedCategories].some(
+      (category) => !configuredCategories.has(category),
+    );
+    if (hasInvalidCategory) {
+      throw new BadRequestException(
+        'Every show price must reference a seat category configured for the venue',
+      );
+    }
 
     if (new Date(dto.startTime) >= new Date(dto.endTime)) {
       throw new BadRequestException('startTime must be before endTime');

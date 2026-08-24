@@ -8,7 +8,14 @@ interface Show {
   id: string;
   startTime: string;
   venue: { name: string; city: string };
-  showSeatCategoryPrices: { price: string }[];
+  showSeatCategoryPrices: { price: string | number }[];
+}
+
+function minimumPrice(show: Show) {
+  const prices = show.showSeatCategoryPrices
+    .map((item) => Number(item.price))
+    .filter((price) => Number.isFinite(price));
+  return prices.length > 0 ? Math.min(...prices) : null;
 }
 
 interface EventItem {
@@ -151,7 +158,7 @@ export default function EventsPage() {
                           )}
                         </span>
                         <span className="font-bold">
-                          From ₹{show.showSeatCategoryPrices[0]?.price ?? "—"}
+                          From ₹{minimumPrice(show) ?? "—"}
                         </span>
                       </div>
                       <Link

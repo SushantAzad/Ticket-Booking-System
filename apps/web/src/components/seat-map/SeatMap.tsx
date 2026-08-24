@@ -31,6 +31,19 @@ interface SeatMapData {
   }[];
 }
 
+function readSeatMap(payload: unknown): SeatMapData {
+  const body = payload as { rows?: unknown; data?: unknown } | null;
+  const seatMap = body?.data && !body.rows ? body.data : payload;
+  if (
+    !seatMap ||
+    typeof seatMap !== "object" ||
+    !Array.isArray((seatMap as SeatMapData).rows)
+  ) {
+    throw new Error("The API returned an invalid seat map.");
+  }
+  return seatMap as SeatMapData;
+}
+
 export const SeatMap = ({ showId }: { showId: string }) => {
   const [data, setData] = useState<SeatMapData | null>(null);
   const [selectedSeats, setSelectedSeats] = useState<Set<string>>(new Set());
@@ -44,13 +57,7 @@ export const SeatMap = ({ showId }: { showId: string }) => {
       try {
         const response = await apiClient.get(`/shows/${showId}/seats`);
 
-        const seatMap = response.data;
-
-        if (!seatMap?.rows) {
-          throw new Error("Invalid seat map response.");
-        }
-
-        setData(seatMap);
+        setData(readSeatMap(response.data));
       } catch (requestError: unknown) {
         const message =
           requestError instanceof Error
@@ -158,11 +165,7 @@ export const SeatMap = ({ showId }: { showId: string }) => {
     try {
       const latestResponse = await apiClient.get(`/shows/${showId}/seats`);
 
-      const latestMap = latestResponse.data;
-
-      if (!latestMap?.rows) {
-        throw new Error("Unable to refresh seat availability.");
-      }
+      const latestMap = readSeatMap(latestResponse.data);
 
       const latestSeats = latestMap.rows.flatMap(
         (row: { seats: Seat[] }) => row.seats,
@@ -235,7 +238,7 @@ export const SeatMap = ({ showId }: { showId: string }) => {
 
   return (
     <div className="flex flex-col items-center max-w-5xl mx-auto p-4 panel rounded-2xl shadow-2xl">
-      <div className="w-full mb-8 h-12 bg-gradient-to-b from-blue-500/20 to-transparent rounded-t-full border-t border-blue-500/50 flex items-center justify-center">
+      <div className="w-full mb-8 h-12 bg-linear-to-b from-blue-500/20 to-transparent rounded-t-full border-t border-blue-500/50 flex items-center justify-center">
         <span className="text-blue-400 font-semibold tracking-widest uppercase text-sm">
           Screen / Stage
         </span>
@@ -264,6 +267,9 @@ export const SeatMap = ({ showId }: { showId: string }) => {
                 } else if (seat.status === "BOOKED") {
                   baseColor =
                     "bg-red-500/20 border-red-500/50 text-red-500/50 cursor-not-allowed";
+                } else if (seat.status === "OFFERED") {
+                  baseColor =
+                    "bg-blue-500/20 border-blue-500/50 text-blue-300/70 cursor-not-allowed";
                 }
 
                 if (isSelected) {
