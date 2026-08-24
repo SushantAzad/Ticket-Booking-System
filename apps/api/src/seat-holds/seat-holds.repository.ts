@@ -85,6 +85,14 @@ export class SeatHoldsRepository {
 
           const seat = locked[0];
 
+          // Clean bookkeeping rows left by terminal holds created before this cleanup.
+          await tx.seatHoldItem.deleteMany({
+            where: {
+              showSeatId: seatId,
+              hold: { status: { not: 'ACTIVE' } },
+            },
+          });
+
           if (seat.status !== 'AVAILABLE') {
             throw new ConflictException(
               `Seat ${seatId} is not available (current status: ${seat.status})`,
@@ -211,5 +219,7 @@ export class SeatHoldsRepository {
         AND status = 'HELD'
         AND "holdId" = ${holdId}
     `;
+
+    await this.prisma.seatHoldItem.deleteMany({ where: { holdId } });
   }
 }

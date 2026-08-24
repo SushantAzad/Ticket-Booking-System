@@ -19,8 +19,17 @@ export class NotificationsService {
     }
   }
 
-  async sendBookingConfirmation(booking: Booking, user: User) {
+  async sendBookingConfirmation(
+    booking: Booking & {
+      bookingSeats?: Array<{ ticket: { qrToken: string } | null }>;
+    },
+    user: User,
+  ) {
     try {
+      const from = this.configService.get<string>(
+        'RESEND_FROM_EMAIL',
+        'Ticket Booking System <noreply@tbs.example.com>',
+      );
       // Generate QR Token (signed)
       const qrSecret = this.configService.get<string>('QR_SECRET', 'secret');
       const payload = `${booking.id}:${booking.userId}:${booking.bookingReference}`;
@@ -28,7 +37,8 @@ export class NotificationsService {
         .createHmac('sha256', qrSecret)
         .update(payload)
         .digest('hex');
-      const qrToken = `${payload}:${signature}`;
+      const qrToken =
+        booking.bookingSeats?.[0]?.ticket?.qrToken ?? `${payload}:${signature}`;
 
       // Generate QR Image Buffer
       const qrBuffer = await QRCode.toBuffer(qrToken, {
@@ -44,7 +54,7 @@ export class NotificationsService {
       }
 
       await this.resend.emails.send({
-        from: 'Ticket Booking System <noreply@tbs.example.com>',
+        from,
         to: user.email,
         subject: `Booking Confirmed: ${booking.bookingReference}`,
         html: `
@@ -78,6 +88,7 @@ export class NotificationsService {
     name: string,
     showName: string,
     expiresAt: Date,
+    offerId?: string,
   ) {
     if (!this.enabled) {
       this.logger.debug(
@@ -87,8 +98,17 @@ export class NotificationsService {
     }
 
     try {
+      const frontendUrl = this.configService.get<string>(
+        'FRONTEND_URL',
+        'http://localhost:3001',
+      );
+      const from = this.configService.get<string>(
+        'RESEND_FROM_EMAIL',
+        'Ticket Booking System <noreply@tbs.example.com>',
+      );
+      const claimUrl = `${frontendUrl}/checkout?waitlistOfferId=${encodeURIComponent(offerId ?? '')}`;
       await this.resend.emails.send({
-        from: 'Ticket Booking System <noreply@tbs.example.com>',
+        from,
         to: email,
         subject: `Waitlist Offer: Seats available for ${showName}`,
         html: `
@@ -96,7 +116,7 @@ export class NotificationsService {
           <p>Hi ${name},</p>
           <p>Seats just became available for your waitlist request for ${showName}.</p>
           <p>This offer expires at <strong>${expiresAt.toLocaleString()}</strong>.</p>
-          <p><a href="http://localhost:3001/checkout">Click here to claim your seats</a></p>
+          <p><a href="${claimUrl}">Click here to claim your seats</a></p>
         `,
       });
       return { success: true };

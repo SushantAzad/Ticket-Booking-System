@@ -14,6 +14,7 @@ import { CreateBookingDto } from './dto/booking.dto';
 import { User } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { v4 as uuidv4 } from 'uuid';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class BookingsService {
@@ -111,7 +112,39 @@ export class BookingsService {
         data: { status: 'BOOKED', bookingId: newBooking.id },
       });
 
-      return newBooking;
+      const qrSecret = process.env.QR_SECRET ?? 'secret';
+      await tx.ticket.createMany({
+        data: bookingSeatData.map(({ showSeatId }) => {
+          const payload = `${newBooking.id}:${user.id}:${newBooking.bookingReference}:${showSeatId}`;
+          const qrToken = `${payload}:${crypto
+            .createHmac('sha256', qrSecret)
+            .update(payload)
+            .digest('hex')}`;
+          return {
+            bookingSeatId: newBooking.bookingSeats.find(
+              (bookingSeat) => bookingSeat.showSeatId === showSeatId,
+            )!.id,
+            showSeatId,
+            qrToken,
+          };
+        }),
+      });
+
+      // Hold items are only needed while tracking the hold; booking seats are the permanent record.
+      await tx.seatHoldItem.deleteMany({ where: { holdId } });
+
+      return tx.booking.findUniqueOrThrow({
+        where: { id: newBooking.id },
+        include: {
+          bookingSeats: {
+            include: {
+              showSeat: { include: { venueSeat: true, category: true } },
+              ticket: true,
+            },
+          },
+          show: { include: { event: true, venue: true } },
+        },
+      });
     });
 
     // ── Side effects (outside the transaction) ────────────────────────────
@@ -140,7 +173,7 @@ export class BookingsService {
         bookingSeats: {
           include: { showSeat: { include: { category: true } } },
         },
-        show: true,
+        show: { include: { event: true } },
       },
     });
 
@@ -151,6 +184,13 @@ export class BookingsService {
       throw new BadRequestException('Already cancelled');
 
     const seatIds = booking.bookingSeats.map((bs) => bs.showSeatId);
+    const waitlistNotifications: Array<{
+      email: string;
+      name: string;
+      showName: string;
+      offerId: string;
+      expiresAt: Date;
+    }> = [];
 
     await this.prisma.$transaction(async (tx) => {
       await tx.booking.update({
@@ -168,6 +208,7 @@ export class BookingsService {
             status: 'WAITING',
           },
           orderBy: { position: 'asc' },
+          include: { user: true },
         });
 
         if (nextEntry) {
@@ -184,13 +225,21 @@ export class BookingsService {
             data: { status: 'OFFERED' },
           });
 
-          await tx.waitlistOffer.create({
+          const offer = await tx.waitlistOffer.create({
             data: {
               waitlistEntryId: nextEntry.id,
               showSeatId: seat.id,
               expiresAt: offerExpiresAt,
               status: 'ACTIVE',
             },
+          });
+
+          waitlistNotifications.push({
+            email: nextEntry.user.email,
+            name: nextEntry.user.name,
+            showName: booking.show.event.title,
+            offerId: offer.id,
+            expiresAt: offerExpiresAt,
           });
 
           // Broadcast offer
@@ -215,6 +264,20 @@ export class BookingsService {
         }
       }
     });
+
+    for (const notification of waitlistNotifications) {
+      this.notificationsService
+        .sendWaitlistOffer(
+          notification.email,
+          notification.name,
+          notification.showName,
+          notification.expiresAt,
+          notification.offerId,
+        )
+        .catch((err) =>
+          this.logger.error('Waitlist notification failed:', err),
+        );
+    }
 
     return { cancelled: true, bookingId };
   }

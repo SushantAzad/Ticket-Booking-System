@@ -10,6 +10,16 @@ export const apiClient = axios.create({
   },
 });
 
+apiClient.interceptors.request.use((config) => {
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("ticketflow_access_token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  return config;
+});
+
 apiClient.interceptors.response.use((response) => {
   const body = response.data;
   if (body && typeof body === "object" && "data" in body && "success" in body) {

@@ -35,6 +35,7 @@ export default function DashboardPage() {
   const [holds, setHolds] = useState<ActiveHold[]>([]);
   const [name, setName] = useState("there");
   const [message, setMessage] = useState("");
+  const [confirmingHoldId, setConfirmingHoldId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -74,7 +75,33 @@ export default function DashboardPage() {
     localStorage.removeItem("ticketflow_user");
     setBookings([]);
     setHolds([]);
+    setName("there");
+    setConfirmingHoldId(null);
     setMessage("You have been signed out.");
+    window.dispatchEvent(new Event("ticketflow-auth-changed"));
+  };
+
+  const confirmBooking = async (holdId: string) => {
+    setConfirmingHoldId(holdId);
+    setMessage("");
+    try {
+      await apiClient.post("/bookings", { holdId });
+      setHolds((current) => current.filter((hold) => hold.id !== holdId));
+      const response = await apiClient.get("/bookings");
+      setBookings(response.data.bookings ?? []);
+    } catch (error) {
+      const response = error as {
+        response?: { data?: { message?: string | string[] } };
+      };
+      const detail = response.response?.data?.message;
+      setMessage(
+        Array.isArray(detail)
+          ? detail.join(" ")
+          : detail || "We could not confirm this booking. Please try again.",
+      );
+    } finally {
+      setConfirmingHoldId(null);
+    }
   };
 
   return (
@@ -142,6 +169,15 @@ export default function DashboardPage() {
                   >
                     Return to seats
                   </Link>
+                  <button
+                    onClick={() => void confirmBooking(hold.id)}
+                    disabled={confirmingHoldId === hold.id}
+                    className="button-primary mt-2 ml-2 rounded-lg px-3 py-2 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {confirmingHoldId === hold.id
+                      ? "Confirming..."
+                      : "Confirm booking"}
+                  </button>
                 </div>
               </div>
             ))}

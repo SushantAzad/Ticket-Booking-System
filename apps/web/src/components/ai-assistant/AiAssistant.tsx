@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/api-client";
@@ -28,62 +28,140 @@ interface SearchResult {
   recommendedShowId?: string | null;
 }
 
+interface ChatMessage {
+  role: "user" | "assistant";
+  text: string;
+}
+
 export const AiAssistant = () => {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SearchResult | null>(null);
   const [actionMessage, setActionMessage] = useState("");
+  const [lastQuery, setLastQuery] = useState("");
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      role: "assistant",
+      text: "Concierge online. Tell me what you want to see and I will search live events, prices, and seats.",
+    },
+  ]);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const focusFromHash = () => {
+      if (window.location.hash === "#assistant") {
+        window.setTimeout(() => inputRef.current?.focus(), 0);
+      }
+    };
+    focusFromHash();
+    window.addEventListener("hashchange", focusFromHash);
+    return () => window.removeEventListener("hashchange", focusFromHash);
+  }, []);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;
 
     setLoading(true);
+    const submittedQuery = query.trim();
+    setLastQuery(submittedQuery);
+    setMessages((previous) => [
+      ...previous,
+      { role: "user", text: submittedQuery },
+    ]);
+    setQuery("");
     try {
-      const res = await apiClient.post("/ai/event-search", { query });
+      const res = await apiClient.post("/ai/event-search", {
+        query: submittedQuery,
+      });
       setResult(res.data);
+      const eventsFound = res.data.events?.length ?? 0;
+      setMessages((previous) => [
+        ...previous,
+        {
+          role: "assistant",
+          text:
+            res.data.explanation ||
+            res.data.message ||
+            `I found ${eventsFound} matching event${eventsFound === 1 ? "" : "s"}. Choose a result below to continue.`,
+        },
+      ]);
     } catch (error) {
       console.error(error);
-      alert("Failed to process AI query");
+      setMessages((previous) => [
+        ...previous,
+        {
+          role: "assistant",
+          text: "I could not reach the concierge right now. Please try again.",
+        },
+      ]);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="panel rounded-2xl p-6 shadow-2xl sm:p-8">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#70e1d0] text-lg text-[#08211f]">
-          <span aria-hidden="true">✦</span>
+    <div className="overflow-hidden rounded-2xl border border-[#70e1d0]/25 bg-[#071019] font-mono shadow-2xl">
+      <div className="flex items-center justify-between border-b border-white/10 bg-white/3 px-5 py-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#70e1d0] text-[#08211f]">
+            <span aria-hidden="true">✦</span>
+          </div>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#70e1d0]">
+              ticketflow / concierge
+            </p>
+            <p className="mt-1 text-sm text-slate-400">
+              gemini grounded search
+            </p>
+          </div>
         </div>
-        <div>
-          <p className="eyebrow">Powered by Gemini</p>
-          <h2 className="mt-1 text-xl font-bold text-white">
-            Your ticket concierge
-          </h2>
-        </div>
+        <span className="text-xs text-emerald-300">● online</span>
       </div>
-
-      <form onSubmit={handleSearch} className="flex gap-2">
+      <div className="max-h-70 min-h-42.5 space-y-3 overflow-y-auto px-5 py-5 text-sm leading-6">
+        {messages.map((message, index) => (
+          <div key={`${message.role}-${index}`} className="flex gap-3">
+            <span
+              className={
+                message.role === "user" ? "text-[#ff9b7d]" : "text-[#70e1d0]"
+              }
+            >
+              {message.role === "user" ? ">" : "$"}
+            </span>
+            <p className="text-slate-300">{message.text}</p>
+          </div>
+        ))}
+        {loading && (
+          <p className="animate-pulse text-[#70e1d0]">
+            $ searching live inventory...
+          </p>
+        )}
+      </div>
+      <form
+        onSubmit={handleSearch}
+        className="flex border-t border-white/10 p-4"
+      >
+        <span className="mr-3 py-3 text-[#70e1d0]">$</span>
         <input
+          ref={inputRef}
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="e.g., 'I need 2 VIP tickets for a rock concert in Mumbai under 2000 rupees each'"
-          className="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none focus:border-[#70e1d0]"
+          placeholder="Ask for an event, city, genre, or seats..."
+          className="min-w-0 flex-1 bg-transparent py-3 text-sm text-white outline-none placeholder:text-slate-600"
+          aria-label="Ask the ticket concierge"
         />
         <button
           type="submit"
           disabled={loading || !query.trim()}
-          className="button-primary rounded-xl px-5 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+          className="button-primary rounded-lg px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {loading ? "Searching..." : "Search"}
+          Send
         </button>
       </form>
-
       {result && (
-        <div className="mt-8 space-y-6">
+        <div className="max-h-96 space-y-6 overflow-y-auto border-t border-white/10 p-5">
           {/* Explanation */}
           {result.explanation && (
             <div className="bg-purple-900/20 border border-purple-500/30 p-4 rounded-lg">
@@ -150,7 +228,7 @@ export const AiAssistant = () => {
                       try {
                         const refreshed = await apiClient.post(
                           "/ai/event-search",
-                          { query },
+                          { query: lastQuery },
                         );
                         setResult(refreshed.data);
                         setActionMessage(
