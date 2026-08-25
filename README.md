@@ -244,7 +244,7 @@ When `POST /api/v1/bookings` confirms an active hold, the API performs these ste
 6. For real delivery, set a valid Resend key and verified sender, restart the API, confirm another booking, and check the inbox for `ticket-{bookingReference}.png`.
 7. Copy a returned `ticket.id` and request `/api/v1/tickets/{ticketId}/verify` in Swagger or an authenticated API client. The response should show `valid: true`.
 
-To test waitlist email delivery, fill every seat in one category, join the waitlist, cancel a confirmed booking, and check the mock log or recipient inbox. The email contains a category offer and a time-limited `waitlistOfferId` checkout link. The scheduled worker reassigns an offer once it passes its 30-minute expiry.
+To test waitlist email delivery service, fill every seat in one category, join the waitlist, cancel a confirmed booking, and check the mock log or recipient inbox. The email contains a category offer and a time-limited `waitlistOfferId` checkout link. The scheduled worker reassigns an offer once it passes its 30-minute expiry.
 
 ## Testing
 
